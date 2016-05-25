@@ -4,8 +4,9 @@ class ImageLoader {
         this._listeners = new Map();
     }
     on(label, callback) {
-        this._listeners.has(label) || this._listeners.set(label, []) ;
-        this._listeners.get(label).push(callback);
+        this._listeners.has(label) || this._listeners.set(label, []);
+        this._listeners.get(label).push(callback)
+        this._listeners.get(label).filter(l => l!== callback);
     }
     emit(label, ...args) {  
         let listeners = this._listeners.get(label);
@@ -41,27 +42,28 @@ class ImageLoader {
         }
         return false;
     }
-    load(obj, callback) {
-        let total = 0;
-        let loaded = 0
-        Object.keys(obj).forEach(key => {
-            total++;
-            let img = new Image();
-            img.src = obj[key]
-                            document.getElementById("myDiv").appendChild(img);
-            console.log('before onload');
-            img.onload = () => {
-                loaded++;
-                this._store[key] = img;
-                this.emit('progress', loaded, total)
-                if( loaded == total) {
-                    callback();
-                }
-            };
-            img.onerror = () => {
-                return null;
-            };
-        });
+    load(obj) {
+        return new Promise((resolve,reject) => {
+            let total = 0;
+            let loaded = 0;
+            Object.keys(obj).forEach(key => {
+                total++;
+                let img = new Image();
+                img.src = obj[key]
+                document.getElementById("myDiv").appendChild(img);
+                img.onload = () => {
+                    loaded++;
+                    this._store[key] = img;
+                    this.emit('progress', loaded, total);
+                    if( loaded == total) {
+                        resolve([loaded,total,'done']);
+                    }
+                };
+                img.onerror = () => {
+                    return null;
+                };
+            });
+        })
     }
 }
 
@@ -73,9 +75,11 @@ const myImages = {'pic1':'http://img2.imgtn.bdimg.com/it/u=3095110310,3312609328
      'pic6':'http://img2.imgtn.bdimg.com/it/u=3947059078,1115942990&fm=21&gp=0.jpg',
      'pic7':'http://img5.imgtn.bdimg.com/it/u=2288619459,320422424&fm=21&gp=0.jpg'
 };
-const cb = () => { console.log('This is callback and loading is sucessful'); };
+// const cb = (a) => { console.log('This is'+a+ 'callback and loading is sucessful'); };
 let test = new ImageLoader();
-test.load(myImages, cb);
+test.load(myImages).then(function(a){
+    console.log('hey, this is my ',a[2]);
+});
 const cb2 = (loaded, total) => { console.log(loaded,' of ', total,' are loaded'); };
 test.on('progress',cb2);
 
